@@ -1,6 +1,7 @@
 import { Vector2, TileType, ItemType, GameState, PlayerState, LevelData, TILE_SIZE, Direction } from './types';
 import { InputHandler } from './input-handler';
 import { Physics } from './physics';
+import { ParticleSystem, ScreenShake } from './effects';
 import { SpriteRenderer } from '../sprites/sprite-renderer';
 import { Player } from '../entities/player';
 import { Enemy, Goomba, Koopa, PiranhaPlant } from '../entities/enemies';
@@ -12,6 +13,8 @@ export class GameEngine {
   private ctx: CanvasRenderingContext2D;
   private inputHandler: InputHandler;
   private spriteRenderer: SpriteRenderer;
+  private particleSystem: ParticleSystem;
+  private screenShake: ScreenShake;
 
   private gameWidth = 256; // NES resolution
   private gameHeight = 240;
@@ -52,6 +55,10 @@ export class GameEngine {
   private onGameOver?: () => void;
   private onLevelComplete?: () => void;
 
+  // Track player state for effects
+  private playerWasGrounded = false;
+  private playerLastDirection = Direction.RIGHT;
+
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d')!;
@@ -59,6 +66,8 @@ export class GameEngine {
 
     this.inputHandler = new InputHandler();
     this.spriteRenderer = new SpriteRenderer();
+    this.particleSystem = new ParticleSystem();
+    this.screenShake = new ScreenShake();
 
     // Load level
     this.level = TEST_LEVEL;
@@ -159,9 +168,36 @@ export class GameEngine {
   private update(deltaTime: number): void {
     if (this.levelComplete) return;
 
+    // Update effects systems
+    this.particleSystem.update(deltaTime);
+    this.screenShake.update(deltaTime);
+
+    // Store player state before update for effect detection
+    const wasGrounded = this.player.isGrounded();
+    const prevDirection = this.player.direction;
+    const prevVelocityX = this.player.velocity.x;
+
     // Update player
     this.player.update(deltaTime, this.inputHandler, this.level.tiles);
     this.gameState.playerState = this.player.state;
+
+    // Detect landing - emit dust particles
+    if (!wasGrounded && this.player.isGrounded()) {
+      const dustX = this.player.position.x + this.player.width / 2;
+      const dustY = this.player.position.y + this.player.height;
+      this.particleSystem.emitLandingDust(dustX, dustY);
+    }
+
+    // Detect quick direction change (skidding) - emit skid dust
+    const currentVelocityX = this.player.velocity.x;
+    if (this.player.isGrounded() &&
+        Math.abs(prevVelocityX) > 1.5 &&
+        Math.sign(prevVelocityX) !== Math.sign(currentVelocityX) &&
+        currentVelocityX !== 0) {
+      const skidX = this.player.position.x + this.player.width / 2;
+      const skidY = this.player.position.y + this.player.height;
+      this.particleSystem.emitSkidDust(skidX, skidY, prevVelocityX > 0 ? 1 : -1);
+    }
 
     // Check player death
     if (this.player.isDead()) {
@@ -251,6 +287,9 @@ export class GameEngine {
     const key = `${tileX},${tileY}`;
     const content = this.blockContents.get(key);
 
+    // Small screen shake when hitting block
+    this.screenShake.shakeSmall();
+
     // Change question block to used block
     if (this.level.tiles[tileY][tileX] === TileType.QUESTION) {
       this.level.tiles[tileY][tileX] = TileType.USED_BLOCK;
@@ -266,6 +305,8 @@ export class GameEngine {
         this.items.push(coin);
         this.addScore(200);
         this.gameState.coins++;
+        // Coin collect particles
+        this.particleSystem.emitCoinCollect(itemX + 8, itemY);
         if (this.gameState.coins >= 100) {
           this.gameState.coins = 0;
           this.gameState.lives++;
@@ -307,6 +348,10 @@ export class GameEngine {
     this.debris.push(new BrickDebris(brickX, brickY + 8, -1.5, -4));
     this.debris.push(new BrickDebris(brickX + 8, brickY + 8, 1.5, -4));
 
+    // Brick break particles and screen shake
+    this.particleSystem.emitBrickBreak(brickX + 8, brickY + 8);
+    this.screenShake.shakeMedium();
+
     this.addScore(50);
   }
 
@@ -328,11 +373,18 @@ export class GameEngine {
           // Star power kills enemy
           enemy.onHit();
           this.addScore(100);
+          // Enemy defeat effects
+          this.particleSystem.emitEnemyDefeat(enemy.position.x + enemy.width / 2, enemy.position.y + enemy.height / 2);
+          this.screenShake.shakeSmall();
         } else if (playerFalling && playerAbove) {
           // Stomp enemy
           const points = enemy.onStomp();
           this.addScore(points);
           this.player.bounce();
+
+          // Stomp effects
+          this.particleSystem.emitStomp(enemy.position.x + enemy.width / 2, enemy.position.y);
+          this.screenShake.shakeSmall();
 
           // Kick koopa shell
           if (enemy instanceof Koopa && enemy.isInShell() && !enemy.isShellMoving()) {
@@ -346,7 +398,13 @@ export class GameEngine {
             const kickDir = this.player.position.x < enemy.position.x ? Direction.RIGHT : Direction.LEFT;
             enemy.kickShell(kickDir);
           } else {
-            this.player.hurt();
+            const died = this.player.hurt();
+            // Screen shake on damage
+            if (died) {
+              this.screenShake.shakeLarge();
+            } else {
+              this.screenShake.shakeMedium();
+            }
           }
         }
       }
@@ -358,26 +416,33 @@ export class GameEngine {
 
       if (Physics.rectanglesIntersect(playerBounds, item.getBounds())) {
         item.collect();
+        const itemCenter = { x: item.position.x + 8, y: item.position.y + 8 };
 
         switch (item.type) {
           case ItemType.MUSHROOM:
             this.player.grow();
             this.addScore(item.getPoints());
+            // Power-up effects
+            this.particleSystem.emitPowerUp(this.player.position.x + this.player.width / 2, this.player.position.y);
             break;
           case ItemType.FIRE_FLOWER:
             this.player.getFirePower();
             this.addScore(item.getPoints());
+            this.particleSystem.emitPowerUp(this.player.position.x + this.player.width / 2, this.player.position.y);
             break;
           case ItemType.STAR:
             this.player.activateStarPower();
             this.addScore(item.getPoints());
+            this.particleSystem.emitPowerUp(this.player.position.x + this.player.width / 2, this.player.position.y);
             break;
           case ItemType.ONE_UP:
             this.gameState.lives++;
+            this.particleSystem.emitPowerUp(itemCenter.x, itemCenter.y);
             break;
           case ItemType.COIN:
             this.addScore(item.getPoints());
             this.gameState.coins++;
+            this.particleSystem.emitCoinCollect(itemCenter.x, itemCenter.y);
             if (this.gameState.coins >= 100) {
               this.gameState.coins = 0;
               this.gameState.lives++;
@@ -425,9 +490,10 @@ export class GameEngine {
     // Respawn enemies
     this.spawnEnemies();
 
-    // Clear items and debris
+    // Clear items, debris, and particles
     this.items = [];
     this.debris = [];
+    this.particleSystem.clear();
   }
 
   private completeLevel(): void {
@@ -462,6 +528,10 @@ export class GameEngine {
     // Apply scale
     this.ctx.scale(this.scale, this.scale);
 
+    // Apply screen shake offset
+    const shakeOffset = this.screenShake.getOffset();
+    this.ctx.translate(shakeOffset.x, shakeOffset.y);
+
     // Draw background decorations
     this.drawBackground();
 
@@ -487,6 +557,9 @@ export class GameEngine {
 
     // Draw debris
     this.debris.forEach(d => d.draw(this.ctx, this.camera));
+
+    // Draw particles
+    this.particleSystem.draw(this.ctx, this.camera);
 
     // Draw flagpole
     if (this.level.flagPosition) {
