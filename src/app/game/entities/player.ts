@@ -29,6 +29,15 @@ export class Player {
   private jumpTime = 0;
   private maxJumpTime = 0.3;
 
+  // Coyote Time - allows jumping shortly after leaving a platform
+  private coyoteTime = 0.1; // 100ms window (about 6 frames at 60fps)
+  private coyoteTimer = 0;
+  private wasGrounded = false;
+
+  // Jump Buffering - registers jump input before landing
+  private jumpBufferTime = 0.1; // 100ms buffer window
+  private jumpBufferTimer = 0;
+
   private walkFrame = 0;
   private walkFrameTimer = 0;
   private walkFrameDelay = 0.1;
@@ -101,17 +110,45 @@ export class Player {
       }
     }
 
-    // Jumping
-    if (input.isJumpPressed() && this.grounded) {
+    // Update Coyote Time
+    // Track when we leave the ground (not from jumping)
+    if (this.wasGrounded && !this.grounded && !this.jumping) {
+      this.coyoteTimer = this.coyoteTime;
+    }
+    if (this.coyoteTimer > 0) {
+      this.coyoteTimer -= deltaTime;
+    }
+    this.wasGrounded = this.grounded;
+
+    // Update Jump Buffer
+    // If player presses jump while in air, buffer it
+    if (input.isJumpPressed()) {
+      this.jumpBufferTimer = this.jumpBufferTime;
+    }
+    if (this.jumpBufferTimer > 0) {
+      this.jumpBufferTimer -= deltaTime;
+    }
+
+    // Can jump if: grounded OR within coyote time window
+    const canJump = this.grounded || this.coyoteTimer > 0;
+
+    // Should jump if: jump was pressed OR jump is buffered
+    const shouldJump = input.isJumpPressed() || this.jumpBufferTimer > 0;
+
+    // Jumping - now with Coyote Time and Jump Buffering
+    if (shouldJump && canJump && !this.jumping) {
       const jumpForce = this.state === PlayerState.SMALL ? PLAYER_JUMP_FORCE : PLAYER_BIG_JUMP_FORCE;
       this.velocity.y = jumpForce;
       this.jumping = true;
       this.jumpHeld = true;
       this.jumpTime = 0;
       this.grounded = false;
+      // Clear coyote timer and jump buffer after jumping
+      this.coyoteTimer = 0;
+      this.jumpBufferTimer = 0;
     }
 
-    // Variable jump height
+    // Variable jump height (hold jump for higher jumps)
     if (this.jumping && input.isJump()) {
       this.jumpTime += deltaTime;
       if (this.jumpTime < this.maxJumpTime) {
@@ -139,6 +176,11 @@ export class Player {
     this.position = collision.position;
     this.velocity = collision.velocity;
     this.grounded = collision.grounded;
+
+    // Reset coyote timer when landing
+    if (this.grounded) {
+      this.coyoteTimer = 0;
+    }
 
     // Hit block from below
     if (collision.hitCeiling) {
@@ -305,6 +347,11 @@ export class Player {
     this.starPower = false;
     this.grounded = false;
     this.direction = Direction.RIGHT;
+    // Reset coyote time and jump buffer
+    this.coyoteTimer = 0;
+    this.jumpBufferTimer = 0;
+    this.wasGrounded = false;
+    this.jumping = false;
   }
 
   // For stomping enemies
