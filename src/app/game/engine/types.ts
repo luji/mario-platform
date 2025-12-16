@@ -108,9 +108,9 @@ export interface ItemSpawn {
 }
 
 export const TILE_SIZE = 16;
-export const GRAVITY = 0.5;
-export const MAX_FALL_SPEED = 8;
-export const PLAYER_WALK_SPEED = 2;
-export const PLAYER_RUN_SPEED = 3.5;
-export const PLAYER_JUMP_FORCE = -8;
-export const PLAYER_BIG_JUMP_FORCE = -9;
+export const GRAVITY = 900;
+export const MAX_FALL_SPEED = 400;
+export const PLAYER_WALK_SPEED = 100;
+export const PLAYER_RUN_SPEED = 180;
+export const PLAYER_JUMP_FORCE = -270;
+export const PLAYER_BIG_JUMP_FORCE = -300;
