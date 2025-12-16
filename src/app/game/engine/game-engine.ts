@@ -181,17 +181,18 @@ export class GameEngine {
     this.player.update(deltaTime, this.inputHandler, this.level.tiles);
     this.gameState.playerState = this.player.state;
 
-    // Detect landing - emit dust particles
+    // Detect landing - emit dust particles and clear hit blocks for next jump
     if (!wasGrounded && this.player.isGrounded()) {
       const dustX = this.player.position.x + this.player.width / 2;
       const dustY = this.player.position.y + this.player.height;
       this.particleSystem.emitLandingDust(dustX, dustY);
+      this.hitBlocks.clear();
     }
 
     // Detect quick direction change (skidding) - emit skid dust
     const currentVelocityX = this.player.velocity.x;
     if (this.player.isGrounded() &&
-        Math.abs(prevVelocityX) > 1.5 &&
+        Math.abs(prevVelocityX) > 80 &&
         Math.sign(prevVelocityX) !== Math.sign(currentVelocityX) &&
         currentVelocityX !== 0) {
       const skidX = this.player.position.x + this.player.width / 2;
