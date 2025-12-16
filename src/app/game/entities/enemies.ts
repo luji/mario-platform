@@ -40,7 +40,7 @@ export abstract class Enemy {
 
 export class Goomba extends Enemy {
   private squashed = false;
-  private walkSpeed = 0.5;
+  private walkSpeed = 30;
 
   constructor(x: number, y: number) {
     super(x, y, EnemyType.GOOMBA);
@@ -59,8 +59,8 @@ export class Goomba extends Enemy {
     }
 
     if (this.dying) {
-      this.velocity.y += GRAVITY;
-      this.position.y += this.velocity.y;
+      this.velocity.y += GRAVITY * deltaTime;
+      this.position.y += this.velocity.y * deltaTime;
       if (this.position.y > 300) {
         this.active = false;
       }
@@ -68,7 +68,7 @@ export class Goomba extends Enemy {
     }
 
     // Apply gravity
-    this.velocity.y = Math.min(this.velocity.y + GRAVITY, MAX_FALL_SPEED);
+    this.velocity.y = Math.min(this.velocity.y + GRAVITY * deltaTime, MAX_FALL_SPEED);
 
     // Check collisions
     const collision = Physics.checkTileCollision(
@@ -117,8 +117,8 @@ export class Goomba extends Enemy {
 export class Koopa extends Enemy {
   private inShell = false;
   private shellMoving = false;
-  private walkSpeed = 0.4;
-  private shellSpeed = 4;
+  private walkSpeed = 25;
+  private shellSpeed = 200;
   private shellKickTimer = 0;
 
   constructor(x: number, y: number) {
@@ -131,8 +131,8 @@ export class Koopa extends Enemy {
     this.frame++;
 
     if (this.dying) {
-      this.velocity.y += GRAVITY;
-      this.position.y += this.velocity.y;
+      this.velocity.y += GRAVITY * deltaTime;
+      this.position.y += this.velocity.y * deltaTime;
       if (this.position.y > 300) {
         this.active = false;
       }
@@ -152,7 +152,7 @@ export class Koopa extends Enemy {
     }
 
     // Apply gravity
-    this.velocity.y = Math.min(this.velocity.y + GRAVITY, MAX_FALL_SPEED);
+    this.velocity.y = Math.min(this.velocity.y + GRAVITY * deltaTime, MAX_FALL_SPEED);
 
     // Check collisions
     const collision = Physics.checkTileCollision(
