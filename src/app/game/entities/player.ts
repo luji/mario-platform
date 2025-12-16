@@ -92,21 +92,21 @@ export class Player {
 
     // Horizontal movement
     const speed = input.isRun() ? PLAYER_RUN_SPEED : PLAYER_WALK_SPEED;
-    const acceleration = this.grounded ? 0.3 : 0.15;
-    const friction = this.grounded ? 0.25 : 0.05;
+    const acceleration = this.grounded ? 600 : 300;
+    const friction = this.grounded ? 500 : 100;
 
     if (input.isLeft()) {
-      this.velocity.x = Math.max(-speed, this.velocity.x - acceleration);
+      this.velocity.x = Math.max(-speed, this.velocity.x - acceleration * deltaTime);
       this.direction = Direction.LEFT;
     } else if (input.isRight()) {
-      this.velocity.x = Math.min(speed, this.velocity.x + acceleration);
+      this.velocity.x = Math.min(speed, this.velocity.x + acceleration * deltaTime);
       this.direction = Direction.RIGHT;
     } else {
       // Apply friction
       if (this.velocity.x > 0) {
-        this.velocity.x = Math.max(0, this.velocity.x - friction);
+        this.velocity.x = Math.max(0, this.velocity.x - friction * deltaTime);
       } else if (this.velocity.x < 0) {
-        this.velocity.x = Math.min(0, this.velocity.x + friction);
+        this.velocity.x = Math.min(0, this.velocity.x + friction * deltaTime);
       }
     }
 
@@ -163,7 +163,7 @@ export class Player {
     }
 
     // Apply gravity
-    this.velocity.y = Math.min(this.velocity.y + GRAVITY, MAX_FALL_SPEED);
+    this.velocity.y = Math.min(this.velocity.y + GRAVITY * deltaTime, MAX_FALL_SPEED);
 
     // Collision detection
     const collision = Physics.checkTileCollision(
@@ -224,12 +224,12 @@ export class Player {
     }
 
     if (!this.deathJumpDone) {
-      this.velocity.y = -8;
+      this.velocity.y = -200;
       this.deathJumpDone = true;
     }
 
-    this.velocity.y += GRAVITY;
-    this.position.y += this.velocity.y;
+    this.velocity.y += GRAVITY * deltaTime;
+    this.position.y += this.velocity.y * deltaTime;
   }
 
   draw(ctx: CanvasRenderingContext2D, camera: Vector2, spriteRenderer: SpriteRenderer, frame: number): void {
@@ -281,7 +281,10 @@ export class Player {
     if (this.state === PlayerState.SMALL) {
       this.state = PlayerState.BIG;
       this.height = 32;
-      this.position.y -= 16;
+      // Only adjust position if grounded to prevent floating
+      if (this.grounded) {
+        this.position.y -= 16;
+      }
     }
   }
 
