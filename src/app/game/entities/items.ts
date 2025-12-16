@@ -55,7 +55,7 @@ export class Coin extends Item {
   // For coins that pop out of blocks
   startBounce(): void {
     this.bouncing = true;
-    this.velocity.y = -8;
+    this.velocity.y = -250;
     this.bounceStartY = this.position.y;
   }
 
@@ -64,8 +64,8 @@ export class Coin extends Item {
 
     if (this.bouncing) {
       this.bounceTimer += deltaTime;
-      this.velocity.y += GRAVITY * 0.5;
-      this.position.y += this.velocity.y;
+      this.velocity.y += GRAVITY * deltaTime * 0.5;
+      this.position.y += this.velocity.y * deltaTime;
 
       if (this.bounceTimer > 0.5) {
         this.active = false;
@@ -91,7 +91,7 @@ export class Coin extends Item {
 export class Mushroom extends Item {
   private emerging = true;
   private emergeY: number;
-  private moveSpeed = 1;
+  private moveSpeed = 50;
 
   constructor(x: number, y: number) {
     super(x, y, ItemType.MUSHROOM);
@@ -103,7 +103,7 @@ export class Mushroom extends Item {
     this.frame++;
 
     if (this.emerging) {
-      this.position.y -= 0.5;
+      this.position.y -= 30 * deltaTime;
       if (this.position.y <= this.emergeY) {
         this.position.y = this.emergeY;
         this.emerging = false;
@@ -113,7 +113,7 @@ export class Mushroom extends Item {
     }
 
     // Apply gravity
-    this.velocity.y = Math.min(this.velocity.y + GRAVITY, MAX_FALL_SPEED);
+    this.velocity.y = Math.min(this.velocity.y + GRAVITY * deltaTime, MAX_FALL_SPEED);
 
     // Check collisions
     const collision = Physics.checkTileCollision(
@@ -164,7 +164,7 @@ export class FireFlower extends Item {
     this.frame++;
 
     if (this.emerging) {
-      this.position.y -= 0.5;
+      this.position.y -= 30 * deltaTime;
       if (this.position.y <= this.emergeY) {
         this.position.y = this.emergeY;
         this.emerging = false;
@@ -187,8 +187,8 @@ export class FireFlower extends Item {
 export class Star extends Item {
   private emerging = true;
   private emergeY: number;
-  private moveSpeed = 2;
-  private bounceForce = -6;
+  private moveSpeed = 100;
+  private bounceForce = -200;
 
   constructor(x: number, y: number) {
     super(x, y, ItemType.STAR);
@@ -200,7 +200,7 @@ export class Star extends Item {
     this.frame++;
 
     if (this.emerging) {
-      this.position.y -= 0.5;
+      this.position.y -= 30 * deltaTime;
       if (this.position.y <= this.emergeY) {
         this.position.y = this.emergeY;
         this.emerging = false;
@@ -211,7 +211,7 @@ export class Star extends Item {
     }
 
     // Apply gravity
-    this.velocity.y = Math.min(this.velocity.y + GRAVITY, MAX_FALL_SPEED);
+    this.velocity.y = Math.min(this.velocity.y + GRAVITY * deltaTime, MAX_FALL_SPEED);
 
     // Check collisions
     const collision = Physics.checkTileCollision(
@@ -257,7 +257,7 @@ export class Star extends Item {
 export class OneUp extends Item {
   private emerging = true;
   private emergeY: number;
-  private moveSpeed = 1;
+  private moveSpeed = 50;
 
   constructor(x: number, y: number) {
     super(x, y, ItemType.ONE_UP);
@@ -269,7 +269,7 @@ export class OneUp extends Item {
     this.frame++;
 
     if (this.emerging) {
-      this.position.y -= 0.5;
+      this.position.y -= 30 * deltaTime;
       if (this.position.y <= this.emergeY) {
         this.position.y = this.emergeY;
         this.emerging = false;
@@ -279,7 +279,7 @@ export class OneUp extends Item {
     }
 
     // Apply gravity
-    this.velocity.y = Math.min(this.velocity.y + GRAVITY, MAX_FALL_SPEED);
+    this.velocity.y = Math.min(this.velocity.y + GRAVITY * deltaTime, MAX_FALL_SPEED);
 
     // Check collisions
     const collision = Physics.checkTileCollision(
