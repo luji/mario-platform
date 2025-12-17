@@ -5,10 +5,12 @@ on:
     branches:
       - main
       - master
+      - develop
   pull_request:
     branches:
       - main
       - master
+      - develop
 
 jobs:
   build:
@@ -61,6 +63,32 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           projectId: ${{ vars.FIREBASE_PROJECT_ID }}
           expires: 7d
+        env:
+          FIREBASE_CLI_EXPERIMENTS: webframeworks
+
+  deploy-staging:
+    name: Deploy Staging
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/mario-platform/browser
+
+      - name: Deploy to Firebase Hosting (Staging)
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: ${{ vars.FIREBASE_PROJECT_ID }}
+          channelId: staging
         env:
           FIREBASE_CLI_EXPERIMENTS: webframeworks
 
