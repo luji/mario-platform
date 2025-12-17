@@ -1,4 +1,6 @@
-# MarioTemp
+# Mario Platform
+
+A Mario-style platformer game built with Angular.
 
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.0.3.
 
