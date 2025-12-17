@@ -199,8 +199,8 @@ The repository includes GitHub Actions workflows that support Gitflow:
 
 ### Automatic Deployments
 
-- **`main` branch** → Firebase Hosting Production (live)
-- **`develop` branch** → Firebase Hosting Staging
+- **`main` branch** → Firebase Hosting Production (live channel)
+- **`develop` branch** → Firebase Hosting Staging (staging channel)
 - **Pull Requests** → Firebase Hosting Preview (7-day expiry)
 
 ### Build and Test
@@ -209,6 +209,18 @@ All branches and pull requests trigger:
 1. Dependency installation
 2. Production build
 3. Artifact upload
+
+### Firebase Hosting Channels Setup
+
+The workflow uses Firebase Hosting channels for different environments:
+
+- **Production (live)**: Automatically deployed from `main` branch
+- **Staging**: Automatically deployed from `develop` branch to the `staging` channel
+- **Preview**: Temporary channels created for pull requests
+
+**Note**: The staging channel is automatically created by Firebase when first deployed. No manual setup is required, but ensure your Firebase project has the necessary permissions configured in GitHub secrets:
+- `FIREBASE_SERVICE_ACCOUNT`: Service account JSON key
+- `FIREBASE_PROJECT_ID`: Firebase project ID (stored in variables)
 
 ## Best Practices
 

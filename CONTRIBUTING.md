@@ -126,17 +126,12 @@ git push origin feature/your-feature-name
 
 ### Formatting
 
-This project uses Prettier for code formatting:
-
-```bash
-# Format code (if Prettier script is added)
-npm run format
-```
-
-Configuration is in `package.json`:
+This project uses Prettier for code formatting with configuration in `package.json`:
 - Print width: 100 characters
 - Single quotes for strings
 - Angular parser for HTML templates
+
+Prettier is configured but no format script is currently available. You can format files manually using your editor's Prettier integration.
 
 ## Testing
 
@@ -205,7 +200,6 @@ Use the feature request template when creating an issue.
 - Be respectful and inclusive
 - Provide constructive feedback
 - Help others learn and grow
-- Follow the [Code of Conduct](CODE_OF_CONDUCT.md) (if one exists)
 
 ## Questions?
 
